@@ -119,4 +119,5 @@ obj-$(CONFIG_TOUCHSCREEN_FTS)	+= FT3519T/
 
 #BSP.TP - 2022.6.24 - Add for palm senser - Start Modify
 obj-$(CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE) += xiaomi/
+obj-$(CONFIG_TOUCHSCREEN_COMMON)	+= tp_common.o
 #End Modify
