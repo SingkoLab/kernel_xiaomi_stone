@@ -2371,8 +2371,8 @@ int ipa3_wwan_set_modem_state(struct wan_ioctl_notify_wan_state *state)
  *
  * This function will register 2 client with IPA PM to represent modem
  * in clock scaling calculation:
- *	- "EMB MODEM" - this client will be activated with embedded traffic
-	- "TETH MODEM" - this client we be activated by IPACM on offload to
+ *	- "EMB_MODEM" - this client will be activated with embedded traffic
+	- "TETH_MODEM" - this client we be activated by IPACM on offload to
 	  modem.
 */
 static int ipa3_q6_register_pm(void)
@@ -2381,7 +2381,7 @@ static int ipa3_q6_register_pm(void)
 	struct ipa_pm_register_params pm_reg;
 
 	memset(&pm_reg, 0, sizeof(pm_reg));
-	pm_reg.name = "EMB MODEM";
+	pm_reg.name = "EMB_MODEM";
 	pm_reg.group = IPA_PM_GROUP_MODEM;
 	pm_reg.skip_clk_vote = true;
 	result = ipa_pm_register(&pm_reg, &rmnet_ipa3_ctx->q6_pm_hdl);
@@ -2390,7 +2390,7 @@ static int ipa3_q6_register_pm(void)
 		return result;
 	}
 
-	pm_reg.name = "TETH MODEM";
+	pm_reg.name = "TETH_MODEM";
 	pm_reg.group = IPA_PM_GROUP_MODEM;
 	pm_reg.skip_clk_vote = true;
 	result = ipa_pm_register(&pm_reg, &rmnet_ipa3_ctx->q6_teth_pm_hdl);
@@ -2413,7 +2413,7 @@ int ipa3_wwan_set_modem_perf_profile(int throughput)
 	int ret;
 
 	IPAWANDBG("throughput: %d\n", throughput);
-	/* for TETH MODEM on softap/rndis */
+	/* for TETH_MODEM on softap/rndis */
 	ret = ipa_pm_set_throughput(rmnet_ipa3_ctx->q6_teth_pm_hdl,
 	throughput);
 
