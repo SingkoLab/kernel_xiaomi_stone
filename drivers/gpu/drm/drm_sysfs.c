@@ -338,6 +338,7 @@ static ssize_t disp_param_show(struct device *device,
 }
 /* end modify*/
 
+#if 0
 /* BSP.LCM - 2022.06.22 - modify for LCM add mipi_reg */
 static ssize_t mipi_reg_show(struct device *device,
 				struct device_attribute *attr,
@@ -441,6 +442,7 @@ static ssize_t flat_mode_store(struct device *device,
 	return ret ? ret : count;
 }
 /* end modify */
+#endif
 
 static DEVICE_ATTR_RW(status);
 static DEVICE_ATTR_RO(enabled);
@@ -448,10 +450,12 @@ static DEVICE_ATTR_RO(dpms);
 static DEVICE_ATTR_RO(modes);
 static DEVICE_ATTR_RO(panel_info);
 static DEVICE_ATTR_RW(disp_param);
+#if 0
 static DEVICE_ATTR_RW(mipi_reg);
 static DEVICE_ATTR_RW(doze_brightness);
 static DEVICE_ATTR_RW(hbm);
 static DEVICE_ATTR_RW(flat_mode);
+#endif
 
 static struct attribute *connector_dev_attrs[] = {
 	&dev_attr_status.attr,
@@ -460,10 +464,12 @@ static struct attribute *connector_dev_attrs[] = {
 	&dev_attr_modes.attr,
 	&dev_attr_panel_info.attr,
 	&dev_attr_disp_param.attr,
+#if 0
 	&dev_attr_mipi_reg.attr,
 	&dev_attr_doze_brightness.attr,
 	&dev_attr_hbm.attr,
 	&dev_attr_flat_mode.attr,
+#endif
 	NULL
 };
 

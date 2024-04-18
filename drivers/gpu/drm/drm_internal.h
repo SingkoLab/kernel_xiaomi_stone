@@ -208,6 +208,7 @@ int drm_syncobj_timeline_signal_ioctl(struct drm_device *dev, void *data,
 				      struct drm_file *file_private);
 int drm_syncobj_query_ioctl(struct drm_device *dev, void *data,
 			    struct drm_file *file_private);
+#if 0
 /* BSP.LCM - 2022.06.22 - modify for LCM add mipi_reg */
 ssize_t dsi_display_mipi_reg_write(struct drm_connector *connector,
 					char *buf, size_t count);
@@ -225,6 +226,7 @@ ssize_t dsi_display_set_flat_mode(struct drm_connector *connector,
 			int flat_mode);
 ssize_t dsi_display_get_flat_mode(struct drm_connector *connector);
 /* end modify */
+#endif
 /* drm_framebuffer.c */
 void drm_framebuffer_print_info(struct drm_printer *p, unsigned int indent,
 				const struct drm_framebuffer *fb);
