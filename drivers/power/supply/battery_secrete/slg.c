@@ -46,7 +46,9 @@ static const char *battery_id_name[] = {
 static int slg_probe(struct platform_device *pdev);
 static int slg_remove(struct platform_device *pdev);
 bool slg_Auth_Result_b;
+#ifdef CONFIG_W1_SLAVE_SLG
 extern int authenticate_battery(void);
+#endif
 extern PCBA_CONFIG get_huaqin_pcba_config(void);
 struct mutex slg_cmd_lock;
 struct slg_data {
@@ -207,6 +209,7 @@ int retry_authentic_times = 0;
 
 static void authentic_work(struct work_struct *work)
 {
+#ifdef CONFIG_W1_SLAVE_SLG
 	//int rc;
 	union power_supply_propval pval = {0,};
 
@@ -236,6 +239,7 @@ static void authentic_work(struct work_struct *work)
 			slg_Auth_Result_b = true;
 			slgbatid = THIRD_SUPPLIER;
 	}
+#endif
 }
 
 static int slg_probe(struct platform_device *pdev)
@@ -302,6 +306,7 @@ static int slg_probe(struct platform_device *pdev)
 		goto slg_create_group_err;
 	}
 
+#ifdef CONFIG_W1_SLAVE_SLG
 	ds_log("Loren authenticate_battery start.");
 	
 	retval =	authenticate_battery();
@@ -310,6 +315,7 @@ static int slg_probe(struct platform_device *pdev)
 		schedule_delayed_work(&slg_data->authentic_work,
 				msecs_to_jiffies(500));
 	}
+#endif
 	return 0;
 
 slg_create_group_err:
