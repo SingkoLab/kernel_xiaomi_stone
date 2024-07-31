@@ -286,6 +286,9 @@ void fuse_release_common(struct file *file, bool isdir)
 	struct fuse_file *ff = file->private_data;
 	struct fuse_release_args *ra = ff->release_args;
 	int opcode = isdir ? FUSE_RELEASEDIR : FUSE_RELEASE;
+	#if defined(CONFIG_PASSTHROUGH_SYSTEM)
+	fuse_passthrough_release(&ff->passthrough);
+	#endif
 
 	fuse_passthrough_release(&ff->passthrough);
 

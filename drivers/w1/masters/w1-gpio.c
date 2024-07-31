@@ -15,8 +15,13 @@
 #include <linux/err.h>
 #include <linux/of.h>
 #include <linux/delay.h>
-
+#include <linux/io.h>
 #include <linux/w1.h>
+#include "hqsys_pcba.h"
+
+extern PCBA_CONFIG get_huaqin_pcba_config(void);
+#define DRV_STRENGTH_8MA		(0x3 << 6)
+void *gpio_cfg66_reg = NULL;
 
 static u8 w1_gpio_set_pullup(void *data, int delay)
 {
@@ -58,13 +63,13 @@ static u8 w1_gpio_read_bit(void *data)
 	return gpiod_get_value(pdata->gpiod) ? 1 : 0;
 }
 
-#if defined(CONFIG_OF)
+//#if defined(CONFIG_OF)
 static const struct of_device_id w1_gpio_dt_ids[] = {
-	{ .compatible = "w1-gpio" },
+	{ .compatible = "xiaomi,onewire_gpio" },
 	{}
 };
 MODULE_DEVICE_TABLE(of, w1_gpio_dt_ids);
-#endif
+//#endif
 
 static int w1_gpio_probe(struct platform_device *pdev)
 {
@@ -75,6 +80,11 @@ static int w1_gpio_probe(struct platform_device *pdev)
 	/* Enforce open drain mode by default */
 	enum gpiod_flags gflags = GPIOD_OUT_LOW_OPEN_DRAIN;
 	int err;
+
+	if ((get_huaqin_pcba_config() >= PCBA_UNKNOW) && (get_huaqin_pcba_config() <= PCBA_END) && (get_huaqin_pcba_config() % 0x10 != 3)){
+		dev_err(dev, "Loren w1-gpio:No compatable phone!\n");
+		return -ERANGE;
+	}
 
 	if (of_have_populated_dt()) {
 		pdata = devm_kzalloc(&pdev->dev, sizeof(*pdata), GFP_KERNEL);
@@ -119,6 +129,10 @@ static int w1_gpio_probe(struct platform_device *pdev)
 			"(ext_pullup_enable_pin) failed\n");
 		return PTR_ERR(pdata->pullup_gpiod);
 	}
+	
+	gpio_cfg66_reg = devm_ioremap(&pdev->dev, 0x503000, 0x4);
+	dev_err(dev, "[Loren]register addr is %x\n",gpio_cfg66_reg);
+	writel_relaxed(DRV_STRENGTH_8MA, gpio_cfg66_reg);
 
 	master->data = pdata;
 	master->read_bit = w1_gpio_read_bit;

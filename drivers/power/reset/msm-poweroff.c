@@ -35,7 +35,7 @@
 
 #define SCM_DLOAD_FULLDUMP		QCOM_DOWNLOAD_FULLDUMP
 #define SCM_EDLOAD_MODE			QCOM_DOWNLOAD_EDL
-#define SCM_DLOAD_MINIDUMP		QCOM_DOWNLOAD_MINIDUMP
+#define SCM_DLOAD_MINIDUMP		0x40
 #define SCM_DLOAD_BOTHDUMPS	(SCM_DLOAD_FULLDUMP | SCM_DLOAD_MINIDUMP)
 
 #define DL_MODE_PROP "qcom,msm-imem-download_mode"
@@ -61,7 +61,7 @@ static int download_mode = 1;
 static struct kobject dload_kobj;
 
 static int in_panic;
-static int dload_type = SCM_DLOAD_FULLDUMP;
+static int dload_type = SCM_DLOAD_BOTHDUMPS;
 static void *dload_mode_addr;
 static bool dload_mode_enabled;
 static void *emergency_dload_mode_addr;
@@ -159,7 +159,8 @@ static bool get_dload_mode(void)
 {
 	return dload_mode_enabled;
 }
-
+/* BSP.Security - 2022.8.23 -disable adb reboot edl function --satrt */
+#if 0
 static void enable_emergency_dload_mode(void)
 {
 	if (emergency_dload_mode_addr) {
@@ -182,7 +183,8 @@ static void enable_emergency_dload_mode(void)
 
 	qcom_scm_set_download_mode(SCM_EDLOAD_MODE, tcsr_boot_misc_detect ?: 0);
 }
-
+#endif
+/* BSP.Security - 2022.8.23 -disable adb reboot edl function --end */
 static int dload_set(const char *val, const struct kernel_param *kp)
 {
 	int ret;
@@ -509,7 +511,7 @@ static int do_msm_restart(struct notifier_block *unused, unsigned long action,
 	return NOTIFY_DONE;
 }
 
-static void do_msm_poweroff(void)
+void do_msm_poweroff(void)
 {
 	pr_notice("Powering off the SoC\n");
 
@@ -521,6 +523,7 @@ static void do_msm_poweroff(void)
 	msleep(10000);
 	pr_err("Powering off has failed\n");
 }
+EXPORT_SYMBOL(do_msm_poweroff);
 
 static int msm_restart_probe(struct platform_device *pdev)
 {

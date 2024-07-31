@@ -75,6 +75,9 @@ struct erofs_sb_info {
 	/* managed XArray arranged in physical block number */
 	struct xarray managed_pslots;
 
+	/* strategy of sync decompression (false - auto, true - force on) */
+	bool readahead_sync_decompress;
+
 	unsigned int shrinker_run_no;
 	u16 available_compr_algs;
 

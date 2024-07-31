@@ -1817,6 +1817,12 @@ config BUILD_ARM64_UNCOMPRESSED_KERNEL
 	  certain situations.
 endchoice
 
+config HQ_QGKI
+	bool "Is QGKI build"
+	default n
+	help
+	  make the driver ko in GKI build mode but normal in QGKI build.
+
 config BUILD_ARM64_DT_OVERLAY
 	bool "enable DT overlay compilation support"
 	depends on OF
