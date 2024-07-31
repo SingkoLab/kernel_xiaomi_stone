@@ -159,8 +159,7 @@ static bool get_dload_mode(void)
 {
 	return dload_mode_enabled;
 }
-/* BSP.Security - 2022.8.23 -disable adb reboot edl function --satrt */
-#if 0
+
 static void enable_emergency_dload_mode(void)
 {
 	if (emergency_dload_mode_addr) {
@@ -183,8 +182,7 @@ static void enable_emergency_dload_mode(void)
 
 	qcom_scm_set_download_mode(SCM_EDLOAD_MODE, tcsr_boot_misc_detect ?: 0);
 }
-#endif
-/* BSP.Security - 2022.8.23 -disable adb reboot edl function --end */
+
 static int dload_set(const char *val, const struct kernel_param *kp)
 {
 	int ret;
