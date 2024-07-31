@@ -703,5 +703,5 @@ static inline bool pd_check_rev30(struct pd_port *pd_port)
 
 #endif	/* CONFIG_USB_PD_ALT_MODE_RTDC */
 
-void __attribute__((weak)) sched_set_fifo(struct task_struct *p);
+//void __attribute__((weak)) sched_set_fifo(struct task_struct *p);
 #endif /* #ifndef __LINUX_RT_TCPCI_CORE_H */
