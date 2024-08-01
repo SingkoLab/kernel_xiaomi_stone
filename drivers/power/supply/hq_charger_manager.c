@@ -883,7 +883,7 @@ static int batt_parse_dt(struct batt_chg *chg)
 #if 0
 static int get_boot_mode(void)
 {
-#ifdef CONFIG_WT_QGKI
+#ifdef CONFIG_HQ_QGKI
 	char *bootmode_string= NULL;
 	char bootmode_start[32] = " ";
 	int rc;
@@ -1123,7 +1123,7 @@ static int batt_chg_probe(struct platform_device *pdev)
 	rc = batt_parse_dt(batt_chg);
 	if (rc < 0) {
 		pr_err("Couldn't parse device tree rc=%d\n", rc);
-#ifdef CONFIG_WT_QGKI
+#ifdef CONFIG_HQ_QGKI
 		goto cleanup;
 #endif
 	}
