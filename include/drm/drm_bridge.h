@@ -239,9 +239,9 @@ struct drm_bridge_funcs {
 	void (*enable)(struct drm_bridge *bridge);
 
 	/*M17-LCM-20220603-add /sys/class/drm/card0-DSI-1/panel_info*/
+#ifdef CONFIG_HQ_QGKI
 	int (*disp_get_panel_info)(struct drm_bridge *bridge, char *name);
-	void (*disp_param_set)(struct drm_bridge *bridge, int cmd);
-	int (*disp_param_get)(struct drm_bridge *bridge, char *buf);
+#endif
 	/*M17-LCM-END-20220603*/
 
 	/**
