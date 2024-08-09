@@ -953,6 +953,11 @@ static int wcd937x_codec_enable_hphl_pa(struct snd_soc_dapm_widget *w,
 	return ret;
 }
 
+#ifdef CONFIG_SND_SOC_SIPA
+extern int wcd937x_sia81xx_resume(void);
+extern int wcd937x_sia81xx_suspend(void);
+#endif
+
 static int wcd937x_codec_enable_aux_pa(struct snd_soc_dapm_widget *w,
 				       struct snd_kcontrol *kcontrol,
 				       int event)
@@ -985,8 +990,14 @@ static int wcd937x_codec_enable_aux_pa(struct snd_soc_dapm_widget *w,
 						SLV_BOLERO_EVT_RX_MUTE,
 						(WCD_RX3 << 0x10));
 		wcd_enable_irq(&wcd937x->irq_info, WCD937X_IRQ_AUX_PDM_WD_INT);
+#ifdef CONFIG_SND_SOC_SIPA
+		wcd937x_sia81xx_resume();
+#endif
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
+#ifdef CONFIG_SND_SOC_SIPA
+		wcd937x_sia81xx_suspend();
+#endif
 		wcd_disable_irq(&wcd937x->irq_info, WCD937X_IRQ_AUX_PDM_WD_INT);
 		if (wcd937x->update_wcd_event)
 			wcd937x->update_wcd_event(wcd937x->handle,
