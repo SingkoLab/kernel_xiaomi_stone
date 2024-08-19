@@ -1783,6 +1783,7 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-doze-hbm-command",
 	"qcom,mdss-dsi-doze-lbm-command",
 	"qcom,mdss-dsi-dispparam-bc-120hz-command",
+	"qcom,mdss-dsi-dispparam-bc-90hz-command",
 	"qcom,mdss-dsi-dispparam-bc-60hz-command",
 };
 
@@ -1813,6 +1814,7 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-doze-hbm-command-state",
 	"qcom,mdss-dsi-doze-lbm-command-state",
 	"qcom,mdss-dsi-dispparam-bc-120hz-command-state",
+	"qcom,mdss-dsi-dispparam-bc-90hz-command-state",
 	"qcom,mdss-dsi-dispparam-bc-60hz-command-state",
 };
 
@@ -4797,7 +4799,6 @@ int dsi_panel_enable(struct dsi_panel *panel)
 	else
 		panel->panel_initialized = true;
 
-	panel->dsi_refresh_flag = 60;
 	if (panel->cur_mode->timing.refresh_rate == 120) {
 		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_BC_120HZ);
 		if (unlikely(rc))
@@ -4805,6 +4806,22 @@ int dsi_panel_enable(struct dsi_panel *panel)
 				panel->name, rc);
 		else
 			panel->dsi_refresh_flag = 120;
+	}
+	if (panel->cur_mode->timing.refresh_rate == 90) {
+		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_BC_90HZ);
+		if (unlikely(rc))
+			DSI_ERR("[%s] failed to send DSI_CMD_SET_DISP_BC_90HZ cmd, rc=%d\n",
+				panel->name, rc);
+		else
+			panel->dsi_refresh_flag = 90;
+	}
+	if (panel->cur_mode->timing.refresh_rate == 60) {
+		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_BC_60HZ);
+		if (unlikely(rc))
+			DSI_ERR("[%s] failed to send DSI_CMD_SET_DISP_BC_60HZ cmd, rc=%d\n",
+				panel->name, rc);
+		else
+			panel->dsi_refresh_flag = 60;
 	}
 
 	mutex_unlock(&panel->panel_lock);
@@ -4971,8 +4988,20 @@ inline void dsi_set_backlight_control(struct dsi_panel *panel)
 
 	refresh_rate = panel->cur_mode->timing.refresh_rate;
 
-	if (refresh_rate == 120)
-		cmd = DSI_CMD_SET_DISP_BC_120HZ;
+	switch(refresh_rate) {
+		case 120:
+			cmd = DSI_CMD_SET_DISP_BC_120HZ;
+		break;
+		case 90:
+			cmd = DSI_CMD_SET_DISP_BC_90HZ;
+		break;
+		case 60:
+			cmd = DSI_CMD_SET_DISP_BC_60HZ;
+		break;
+		default:
+			cmd = DSI_CMD_SET_DISP_BC_60HZ;
+		break;
+	}
 
 	rc = dsi_panel_tx_cmd_set(panel, cmd);
 
