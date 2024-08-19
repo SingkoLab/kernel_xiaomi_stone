@@ -1261,6 +1261,7 @@ static int geni_i2c_xfer(struct i2c_adapter *adap,
 			i2c_put_dma_safe_msg_buf(dma_buf, &msgs[i], !gi2c->err);
 		}
 		ret = gi2c->err;
+		gi2c->err = 0;
 		if (gi2c->err) {
 			GENI_SE_ERR(gi2c->ipcl, true, gi2c->dev,
 				"i2c error :%d\n", gi2c->err);
