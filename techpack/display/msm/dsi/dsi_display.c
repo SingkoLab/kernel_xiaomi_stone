@@ -25,6 +25,7 @@
 #include "mi_dsi_display.h"
 
 #define to_dsi_display(x) container_of(x, struct dsi_display, host)
+#define to_dsi_bridge(x) container_of((x), struct dsi_bridge, base)
 #define INT_BASE_10 10
 
 #define MISR_BUFF_SIZE	256
@@ -261,7 +262,7 @@ error:
 	return rc;
 }
 
-static int dsi_display_cmd_engine_enable(struct dsi_display *display)
+int dsi_display_cmd_engine_enable(struct dsi_display *display)
 {
 	int rc = 0;
 	int i;
@@ -309,7 +310,7 @@ done:
 	return rc;
 }
 
-static int dsi_display_cmd_engine_disable(struct dsi_display *display)
+int dsi_display_cmd_engine_disable(struct dsi_display *display)
 {
 	int rc = 0;
 	int i;
@@ -503,7 +504,7 @@ error:
 }
 
 /* Allocate memory for cmd dma tx buffer */
-static int dsi_host_alloc_cmd_tx_buffer(struct dsi_display *display)
+int dsi_host_alloc_cmd_tx_buffer(struct dsi_display *display)
 {
 	int rc = 0, cnt = 0;
 	struct dsi_display_ctrl *display_ctrl;
@@ -1243,16 +1244,23 @@ int dsi_display_set_power(struct drm_connector *connector,
 {
 	struct drm_notify_data g_notify_data;
 	struct dsi_display *display = disp;
-	int rc = 0;
+	struct drm_device *dev = NULL;
+	int rc = 0, event = 0;
 
 	if (!display || !display->panel) {
 		DSI_ERR("invalid display/panel\n");
 		return -EINVAL;
+	} else {
+		dev = connector->dev;
+#ifdef CONFIG_HQ_QGKI
+		event = dev->doze_state;
+#endif
 	}
 
 	g_notify_data.data = &power_mode;
 	switch (power_mode) {
 	case SDE_MODE_DPMS_LP1:
+		display->panel->is_aod = true;
 		drm_notifier_call_chain(DRM_EARLY_EVENT_BLANK, &g_notify_data);
 		if (display->panel->power_mode == SDE_MODE_DPMS_LP2) {
 			if (dsi_display_set_ulp_load(display, false) < 0)
@@ -1262,6 +1270,7 @@ int dsi_display_set_power(struct drm_connector *connector,
 		drm_notifier_call_chain(DRM_EVENT_BLANK, &g_notify_data);
 		break;
 	case SDE_MODE_DPMS_LP2:
+		display->panel->is_aod = true;
 		drm_notifier_call_chain(DRM_EARLY_EVENT_BLANK, &g_notify_data);
 		rc = dsi_panel_set_lp2(display->panel);
 		if (dsi_display_set_ulp_load(display, true) < 0)
@@ -1269,6 +1278,7 @@ int dsi_display_set_power(struct drm_connector *connector,
 		drm_notifier_call_chain(DRM_EVENT_BLANK, &g_notify_data);
 		break;
 	case SDE_MODE_DPMS_ON:
+		display->panel->is_aod = false;
 		if (display->panel->power_mode == SDE_MODE_DPMS_LP2) {
 			if (dsi_display_set_ulp_load(display, false) < 0)
 				DSI_WARN("failed to set load for on state\n");
@@ -1283,10 +1293,21 @@ int dsi_display_set_power(struct drm_connector *connector,
 		}
 		break;
 	case SDE_MODE_DPMS_OFF:
+		display->panel->is_aod = false;
 	default:
+#ifdef CONFIG_HQ_QGKI
+		if (dev->pre_state != SDE_MODE_DPMS_LP1 &&
+			dev->pre_state != SDE_MODE_DPMS_LP2)
+			break;
+#endif
+		drm_notifier_call_chain(DRM_EARLY_EVENT_BLANK, &g_notify_data);
+		rc = dsi_panel_set_nolp(display->panel);
+		drm_notifier_call_chain(DRM_EVENT_BLANK, &g_notify_data);
 		return rc;
 	}
-
+#ifdef CONFIG_HQ_QGKI
+	dev->pre_state = power_mode;
+#endif
 	SDE_EVT32(display->panel->power_mode, power_mode, rc);
 	DSI_DEBUG("Power mode transition from %d to %d %s",
 			display->panel->power_mode, power_mode,
@@ -8887,6 +8908,195 @@ void __exit dsi_display_unregister(void)
 	dsi_ctrl_drv_unregister();
 	dsi_phy_drv_unregister();
 }
+
+#ifdef CONFIG_HQ_QGKI
+ssize_t dsi_display_mipi_reg_write(struct drm_connector *connector,
+			char *buf, size_t count)
+{
+	struct dsi_display *display = NULL;
+	struct dsi_bridge *c_bridge = NULL;
+
+	if (!connector || !connector->encoder || !connector->encoder->bridge) {
+		pr_err("Invalid invalid connector/encoder/bridge ptr\n");
+		return -EINVAL;
+	}
+
+	c_bridge =  to_dsi_bridge(connector->encoder->bridge);
+	display = c_bridge->display;
+	if (!display || !display->panel) {
+		pr_err("Invalid display/panel ptr\n");
+		return -EINVAL;
+	}
+
+	return dsi_panel_mipi_reg_write(display->panel, buf, count);
+}
+
+ssize_t dsi_display_mipi_reg_read(struct drm_connector *connector,
+			char *buf)
+{
+	struct dsi_display *display = NULL;
+	struct dsi_bridge *c_bridge = NULL;
+
+	if (!connector || !connector->encoder || !connector->encoder->bridge) {
+		pr_err("Invalid invalid connector/encoder/bridge ptr\n");
+		return -EINVAL;
+	}
+
+	c_bridge =  to_dsi_bridge(connector->encoder->bridge);
+	display = c_bridge->display;
+	if (!display || !display->panel) {
+		pr_err("Invalid display/panel ptr\n");
+		return -EINVAL;
+	}
+
+	return dsi_panel_mipi_reg_read(display->panel, buf);
+}
+
+ssize_t dsi_display_set_hbm(struct drm_connector *connector,
+			int hbm_status)
+{
+	ssize_t rc;
+	struct dsi_display *display = NULL;
+	struct dsi_bridge *c_bridge = NULL;
+
+	if (!connector || !connector->encoder || !connector->encoder->bridge) {
+		pr_err("Invalid connector/encoder/bridge ptr\n");
+		return -EINVAL;
+	}
+
+	c_bridge =  to_dsi_bridge(connector->encoder->bridge);
+	display = c_bridge->display;
+
+	if (!display || !display->panel) {
+		pr_err("Invalid display/panel ptr\n");
+		return -EINVAL;
+	}
+
+	rc = dsi_panel_set_hbm(display->panel, hbm_status);
+
+	return rc;
+}
+
+ssize_t dsi_display_get_hbm_status(struct drm_connector *connector)
+{
+	ssize_t hbm_status;
+	struct dsi_display *display = NULL;
+	struct dsi_bridge *c_bridge = NULL;
+
+	if (!connector || !connector->encoder || !connector->encoder->bridge) {
+		pr_err("Invalid connector/encoder/bridge ptr\n");
+		return -EINVAL;
+	}
+
+	c_bridge =  to_dsi_bridge(connector->encoder->bridge);
+	display = c_bridge->display;
+
+	if (!display || !display->panel) {
+		pr_err("Invalid display/panel ptr\n");
+		return -EINVAL;
+	}
+	hbm_status = display->panel->bl_config.hbm_status;
+
+	return hbm_status;
+}
+
+ssize_t dsi_display_set_doze_brightness(struct drm_connector *connector,
+			int doze_brightness)
+{
+	ssize_t rc;
+	struct dsi_display *display = NULL;
+	struct dsi_bridge *c_bridge = NULL;
+
+	if (!connector || !connector->encoder || !connector->encoder->bridge) {
+		pr_err("Invalid connector/encoder/bridge ptr\n");
+		return -EINVAL;
+	}
+
+	c_bridge =  to_dsi_bridge(connector->encoder->bridge);
+	display = c_bridge->display;
+
+	if (!display || !display->panel) {
+		pr_err("Invalid display/panel ptr\n");
+		return -EINVAL;
+	}
+
+	rc = dsi_panel_set_doze_brightness(display->panel, doze_brightness);
+
+	return rc;
+}
+
+ssize_t dsi_display_get_doze_brightness(struct drm_connector *connector)
+{
+	ssize_t doze_brightness;
+	struct dsi_display *display = NULL;
+	struct dsi_bridge *c_bridge = NULL;
+
+	if (!connector || !connector->encoder || !connector->encoder->bridge) {
+		pr_err("Invalid connector/encoder/bridge ptr\n");
+		return -EINVAL;
+	}
+
+	c_bridge =  to_dsi_bridge(connector->encoder->bridge);
+	display = c_bridge->display;
+
+	if (!display || !display->panel) {
+		pr_err("Invalid display/panel ptr\n");
+		return -EINVAL;
+	}
+	doze_brightness = display->panel->bl_config.doze_brightness;
+
+	return doze_brightness;
+}
+
+ssize_t dsi_display_set_flat_mode(struct drm_connector *connector,
+			int flat_mode)
+{
+	ssize_t rc;
+	struct dsi_display *display = NULL;
+	struct dsi_bridge *c_bridge = NULL;
+
+	if (!connector || !connector->encoder || !connector->encoder->bridge) {
+		pr_err("Invalid connector/encoder/bridge ptr\n");
+		return -EINVAL;
+	}
+
+	c_bridge =  to_dsi_bridge(connector->encoder->bridge);
+	display = c_bridge->display;
+
+	if (!display || !display->panel) {
+		pr_err("Invalid display/panel ptr\n");
+		return -EINVAL;
+	}
+
+	rc = dsi_panel_set_flat_mode(display->panel, flat_mode);
+
+	return rc;
+}
+
+ssize_t dsi_display_get_flat_mode(struct drm_connector *connector)
+{
+	ssize_t flat_mode;
+	struct dsi_display *display = NULL;
+	struct dsi_bridge *c_bridge = NULL;
+
+	if (!connector || !connector->encoder || !connector->encoder->bridge) {
+		pr_err("Invalid connector/encoder/bridge ptr\n");
+		return -EINVAL;
+	}
+
+	c_bridge =  to_dsi_bridge(connector->encoder->bridge);
+	display = c_bridge->display;
+
+	if (!display || !display->panel) {
+		pr_err("Invalid display/panel ptr\n");
+		return -EINVAL;
+	}
+	flat_mode = display->panel->flat_mode;
+
+	return flat_mode;
+}
+#endif /* CONFIG_HQ_QGKI */
+
 module_param_string(dsi_display0, dsi_display_primary, MAX_CMDLINE_PARAM_LEN,
 								0600);
 MODULE_PARM_DESC(dsi_display0,

@@ -837,4 +837,8 @@ int dsi_display_ctrl_vreg_on(struct dsi_display *display);
  */
 int dsi_display_ctrl_vreg_off(struct dsi_display *display);
 
+int dsi_display_cmd_engine_enable(struct dsi_display *display);
+int dsi_display_cmd_engine_disable(struct dsi_display *display);
+int dsi_host_alloc_cmd_tx_buffer(struct dsi_display *display);
+
 #endif /* _DSI_DISPLAY_H_ */

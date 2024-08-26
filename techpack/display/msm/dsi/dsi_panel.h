@@ -53,12 +53,6 @@ enum dsi_backlight_type {
 	DSI_BACKLIGHT_MAX,
 };
 
-enum dsi_doze_type {
-	DSI_DOZE_OFF,
-	DSI_DOZE_HBM,
-	DSI_DOZE_LBM,
-};
-
 enum bl_update_flag {
 	BL_UPDATE_DELAY_UNTIL_FIRST_FRAME,
 	BL_UPDATE_NONE,
@@ -81,6 +75,13 @@ enum dsi_panel_physical_type {
 	DSI_DISPLAY_PANEL_TYPE_LCD = 0,
 	DSI_DISPLAY_PANEL_TYPE_OLED,
 	DSI_DISPLAY_PANEL_TYPE_MAX,
+};
+
+enum hbm_level {
+	DSI_PANEL_HBM_OFF = 0,
+	DSI_PANEL_HBM_L1_ON,
+	DSI_PANEL_HBM_L2_ON,
+	DSI_PANEL_HBM_L3_ON
 };
 
 struct dsi_dfps_capabilities {
@@ -128,7 +129,6 @@ struct dsi_backlight_config {
 	u32 bl_max_level;
 	u32 brightness_max_level;
 	u32 bl_level;
-	u32 bl_level_nodim;
 	u32 bl_scale;
 	u32 bl_scale_sv;
 	bool bl_inverted_dbv;
@@ -145,6 +145,11 @@ struct dsi_backlight_config {
 
 	/* DCS params */
 	bool lp_mode;
+	u32 hbm_status;
+	u32 doze_brightness;
+	u32 bl_last_level;
+	bool dimming_enable;
+	u32 backlight_delay_level;
 };
 
 struct dsi_reset_seq {
@@ -278,10 +283,18 @@ struct dsi_panel {
 
 	struct dsi_panel_ops panel_ops;
 
-	enum dsi_doze_type doze_status;
-	u32 doze_hbm_threshold;
-
 	u8 dsi_refresh_flag;
+	u32 flat_mode;
+	bool is_aod;
+	struct delayed_work nolp_bl_delay_work;
+};
+
+struct dsi_read_config {
+	bool enabled;
+	struct dsi_panel_cmd_set read_cmd;
+	u32 cmds_rlen;
+	u32 valid_bits;
+	u8 rbuf[64];
 };
 
 static inline bool dsi_panel_ulps_feature_enabled(struct dsi_panel *panel)
@@ -418,5 +431,26 @@ void dsi_panel_destroy_cmd_packets(struct dsi_panel_cmd_set *set);
 
 void dsi_panel_dealloc_cmd_packets(struct dsi_panel_cmd_set *set);
 
+#ifdef CONFIG_HQ_QGKI
+int dsi_panel_write_cmd_set(struct dsi_panel *panel,
+				struct dsi_panel_cmd_set *cmd_sets);
+
+int dsi_panel_read_cmd_set(struct dsi_panel *panel,
+				struct dsi_read_config *read_config);
+
+ssize_t dsi_panel_mipi_reg_write(struct dsi_panel *panel,
+				char *buf, size_t count);
+
+ssize_t dsi_panel_mipi_reg_read(struct dsi_panel *panel,
+				char *buf);
 void dsi_set_backlight_control(struct dsi_panel *panel);
+ssize_t dsi_panel_set_hbm(struct dsi_panel *panel,
+			int hbm_status);
+ssize_t dsi_panel_set_doze_brightness(struct dsi_panel *panel,
+			int doze_brightness);
+ssize_t dsi_panel_set_flat_mode(struct dsi_panel *panel,
+			int flat_mode);
+int dsi_panel_dimming_control(struct dsi_panel *panel,
+			bool enable);
+#endif /* CONFIG_HQ_QGKI */
 #endif /* _DSI_PANEL_H_ */
