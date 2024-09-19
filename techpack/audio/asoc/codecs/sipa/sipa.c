@@ -175,23 +175,6 @@ static int check_sipa_status(sipa_dev_t *si_pa);
 static DEVICE_ATTR_RW(sipa_device);
 #endif
 
-#if 0
-#ifdef SIA91XX_TYPE
-static ssize_t sipa_spk_cal_show(struct device *cd,
-	struct device_attribute *attr, char *buf);
-static ssize_t sipa_spk_cal_store(struct device *cd,
-	struct device_attribute *attr, const char *buf, size_t len);
-static ssize_t sipa_f0_show(struct device *cd,
-	struct device_attribute *attr, char *buf);
-static ssize_t sipa_r0_show(struct device *cd,
-	struct device_attribute *attr, char *buf);
-
-static DEVICE_ATTR_RW(sipa_spk_cal);
-static DEVICE_ATTR_RO(sipa_f0);
-static DEVICE_ATTR_RO(sipa_r0);
-#endif
-#endif
-
 static int sia91xx_create_controls(struct snd_soc_component *component);
 static struct snd_kcontrol_new *sia91xx_controls;
 int sia91xx_selector = 0;
@@ -214,7 +197,6 @@ static const char *support_chip_type_name_table[] = {
 };
 
 static sipa_dev_t *g_default_sia_dev;
-uint32_t g_dyn_ud_vdd_port;
 
 /* lct_audio add begin */
 static sipa_dev_t *g_wcd937x_sia_dev;
@@ -2755,7 +2737,7 @@ static int sipa_probe(struct platform_device *pdev)
 
 #ifndef SIA91XX_TYPE
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(4, 16, 28))
-	//ret = devm_snd_soc_register_component(&pdev->dev, &soc_component_dev_sipa, NULL, 0);
+	ret = devm_snd_soc_register_component(&pdev->dev, &soc_component_dev_sipa, NULL, 0);
 #else
 	ret = snd_soc_register_codec(&pdev->dev, &soc_codec_dev_sipa, NULL, 0);
 #endif

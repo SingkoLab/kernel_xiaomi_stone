@@ -50,25 +50,16 @@ void sipa_param_load_fw(struct device *dev);
 void sipa_param_release(void);
 
 int sipa_param_read_spk_calibration(
-	uint32_t ch,
-	SIPA_PARAM_CAL_SPK *cal_spk);
-int sipa_param_write_spk_calibration(
-	uint32_t ch,
-	uint32_t is_ok,
-	int32_t r0,
-	int32_t t0,
-	int32_t wire_r0,
-	int32_t a);
+	uint32_t ch, SIPA_PARAM_CAL_SPK *cal_spk);
+int sipa_param_write_spk_calibration(uint32_t ch,
+	uint32_t is_ok, int32_t r0, int32_t t0, int32_t wire_r0, int32_t a);
+
 int sipa_param_write_spk_r0(
-	uint32_t ch,
-	uint32_t r0,
-	uint32_t cal_ok);
+	uint32_t ch, uint32_t r0, uint32_t cal_ok);
 int sipa_param_read_spk_model(
-	uint32_t ch,
-	SIPA_PARAM_SPK_MODEL_PARAM *spk_model);
+	uint32_t ch, SIPA_PARAM_SPK_MODEL_PARAM *spk_model);
 int sipa_param_write_spk_model(
-	uint32_t ch,
-	SIPA_PARAM_SPK_MODEL_PARAM *spk_model);
+	uint32_t ch, SIPA_PARAM_SPK_MODEL_PARAM *spk_model);
 
 void *sipa_param_read_chip_cfg(
 	uint32_t ch, uint32_t chip_type,
@@ -79,6 +70,8 @@ int sipa_param_read_extra_cfg(
 
 const SIPA_PARAM *sipa_param_instance(void);
 bool sipa_param_is_loaded(void);
+
+/* only for debug or test */
 void sipa_param_create_default_param(void);
 void sipa_param_print(void);
 

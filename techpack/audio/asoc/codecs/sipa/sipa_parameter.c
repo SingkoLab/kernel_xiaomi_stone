@@ -23,9 +23,6 @@
 #include "sipa_tuning_if.h"
 #include "sipa_parameter.h"
 
-//#define LOAD_FW_BY_DELAY_WORK
-#define LOAD_TIME_OUT 	(2000)
-
 static const char *sipa_fw_name = "sipa.bin";
 static SIPA_PARAM *sipa_parameters = NULL;
 static uint32_t sipa_fw_loaded = 0;
@@ -33,7 +30,6 @@ static struct mutex sipa_fw_load_lock;
 
 extern int sipa_pending_actions(sipa_dev_t *si_pa);
 
-#ifndef LOAD_FW_BY_DELAY_WORK
 static void sipa_container_loaded(
 	const struct firmware *cont,
 	void *context)
@@ -118,110 +114,19 @@ load_error:
 
 	release_firmware(cont);
 }
-#else
-static void sipa_fw_loaded_work(struct work_struct *work)
-{
-	int ret = 0;
-	uint32_t sz = 0;
-	const SIPA_PARAM_FW *param = NULL;
-	sipa_dev_t *si_pa = container_of(work, sipa_dev_t, fw_load_work.work);
-	const struct firmware *cont = NULL;
-
-	if (NULL == si_pa) {
-		pr_err("[  err][%s] %s: NULL == si_pa \r\n", LOG_FLAG, __func__);
-		return;
-	}
-
-	// 多声道的fw_load动作是并行处理
-	mutex_lock(&sipa_fw_load_lock);
-
-	if (1 == sipa_fw_loaded || NULL != sipa_parameters) {
-		goto pending_actions;
-	}
-
-	ret = request_firmware(&cont, sipa_fw_name, &si_pa->pdev->dev);
-	if (ret) {
-		pr_err("[  err][%s]: request_firmware err ret = %d\r\n", LOG_FLAG, ret);
-		goto load_error;
-	}
-
-	sz = sizeof(SIPA_PARAM_FW);
-	if (sz > cont->size) {
-		pr_err("[  err][%s] %s: sizeof(SIPA_PARAM_FW)(%u) > cont->size(%lu) \r\n",
-			LOG_FLAG, __func__, sz, cont->size);
-		goto load_error;
-	}
-
-	param = (SIPA_PARAM_FW *)cont->data;
-	sz += param->data_size;
-
-	if (sz > cont->size) {
-		pr_err("[  err][%s] %s: sz(%u) > cont->size(%lu) \r\n",
-			LOG_FLAG, __func__, sz, cont->size);
-		goto load_error;
-	} else if (sz < cont->size) {
-		pr_warn("[ warn][%s] %s: sz(%u) < cont->size(%lu) \r\n",
-			LOG_FLAG, __func__, sz, cont->size);
-	}
-
-	if (SIPA_FW_VER != param->version) {
-		pr_err("[  err][%s] %s: SIPA_FW_VER(0x%08x) != param->version(0x%08x) \r\n",
-			LOG_FLAG, __func__, SIPA_FW_VER, param->version);
-		goto load_error;
-	}
-
-	if (param->crc != crc32((uint8_t *)&param->version, sz - sizeof(uint32_t))) {
-		pr_err("[  err][%s] %s: param crc(0x%x) check failed! \r\n",
-		   LOG_FLAG, __func__, param->crc);
-		goto load_error;
-	}
-
-	sipa_parameters = kzalloc(sizeof(SIPA_PARAM_WRITEABLE) + sz, GFP_KERNEL);
-	if (NULL == sipa_parameters) {
-		pr_err("[  err][%s] %s: kmalloc failed \r\n",
-			LOG_FLAG, __func__);
-		goto load_error;
-	}
-
-	memcpy(&sipa_parameters->fw, cont->data, sz);
-	release_firmware(cont);
-	sipa_fw_loaded = 1;
-
-pending_actions:
-	mutex_unlock(&sipa_fw_load_lock);
-	sipa_pending_actions(si_pa);
-	return;
-
-load_error:
-	if (NULL != sipa_parameters) {
-		kfree(sipa_parameters);
-		sipa_parameters = NULL;
-	}
-
-	sipa_fw_loaded = 0;
-	mutex_unlock(&sipa_fw_load_lock);
-	release_firmware(cont);
-}
-#endif
 
 void sipa_param_load_fw(struct device *dev)
 {
 	sipa_dev_t *si_pa = dev_get_drvdata(dev);
-	static bool load_lock_init_flag = false;
 
 	if (NULL == si_pa) {
 		pr_err("[  err][%s] %s: NULL == si_pa \r\n", LOG_FLAG, __func__);
 		return;
 	}
 
-	pr_info("[debug][%s] %s: load fw !\r\n", LOG_FLAG, __func__);
-
-	if (false == load_lock_init_flag) {
+	if (0 == si_pa->channel_num)
 		mutex_init(&sipa_fw_load_lock);
-		load_lock_init_flag = true;
-	}
 
-#ifndef LOAD_FW_BY_DELAY_WORK
 	request_firmware_nowait(
 		THIS_MODULE,
 		FW_ACTION_HOTPLUG,
@@ -230,11 +135,6 @@ void sipa_param_load_fw(struct device *dev)
 		GFP_KERNEL,
 		si_pa,
 		sipa_container_loaded);
-#else
-	INIT_DELAYED_WORK(&si_pa->fw_load_work, sipa_fw_loaded_work);
-	queue_delayed_work(si_pa->sia91xx_wq, 
-		&si_pa->fw_load_work, msecs_to_jiffies(LOAD_TIME_OUT));
-#endif
 }
 
 void sipa_param_release(void)
@@ -388,6 +288,7 @@ bool sipa_param_is_loaded(void)
 	return false;
 }
 
+/* only for debug or test */
 void sipa_param_create_default_param(void)
 {
 #if 0
@@ -437,20 +338,38 @@ void sipa_param_create_default_param(void)
 #endif
 }
 
+/* only for debug or test */
 void sipa_param_print(void)
 {
 	int i = 0;
 
 	if (1 != sipa_fw_loaded || NULL == sipa_parameters) {
-		pr_err("[  err][%s] %s: firmware unload sipa_fw_loaded:%u, sipa_parameters:%p\r\n",
-			LOG_FLAG, __func__, sipa_fw_loaded, sipa_parameters);
+		pr_err("[  err][%s] %s: firmware unload \r\n", LOG_FLAG, __func__);
 		return;
 	}
 
 	for (i = 0; i < SIPA_CHANNEL_NUM; i++) {
-		SIPA_PARAM_LIST *chip_cfg_list = &sipa_parameters->fw.chip_cfg[i];
-		pr_info("[ info][%s] %s: ch_en[%d](%u) offset:%d num:%d\r\n",
-			LOG_FLAG, __func__, i, sipa_parameters->fw.ch_en[i], chip_cfg_list->offset, chip_cfg_list->num);
+		pr_info("[ info][%s] %s: ch_en[%d](%u) \r\n",
+			LOG_FLAG, __func__, i, sipa_parameters->fw.ch_en[i]);
+
+		pr_info("[ info][%s] %s: cal_ok[%d](%u)"
+			"r0[%d](%d), t0[%d](%d), "
+			"wire_r0[%d](%d), a[%d](%d),"
+			"min_r0[%d](%d), max_r0[%d](%d), max_delta_r0[%d](%d),"
+			"f0[%d](%d), q[%d](%d), xthresh[%d](%d), xthresh_rdc[%d](%d) \r\n",
+			LOG_FLAG, __func__,
+			i, sipa_parameters->writeable.cal_spk[i].cal_ok,
+			i, sipa_parameters->writeable.cal_spk[i].r0,
+			i, sipa_parameters->writeable.cal_spk[i].t0,
+			i, sipa_parameters->writeable.cal_spk[i].wire_r0,
+			i, sipa_parameters->writeable.cal_spk[i].a,
+			i, sipa_parameters->fw.extra_cfg[i].spk_min_r0,
+			i, sipa_parameters->fw.extra_cfg[i].spk_max_r0,
+			i, sipa_parameters->fw.extra_cfg[i].spk_max_delta_r0,
+			i, sipa_parameters->writeable.spk_model[i].f0,
+			i, sipa_parameters->writeable.spk_model[i].q,
+			i, sipa_parameters->writeable.spk_model[i].xthresh,
+			i, sipa_parameters->writeable.spk_model[i].xthresh_rdc);
 	}
 }
 

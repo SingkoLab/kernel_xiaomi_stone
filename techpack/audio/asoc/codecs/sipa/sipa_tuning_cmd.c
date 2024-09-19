@@ -175,6 +175,31 @@ typedef struct sia81xx_debug_show {
 	uint32_t proc_code[17];
 } __packed SIA81XX_DEBUG_SHOW;
 
+static inline int32_t sipa_float_to_int(void *f, uint32_t mul)
+{
+	uint32_t raw = *((uint32_t *)f);
+	uint8_t s = ((raw >> 31) & 0x00000001);
+	uint8_t e = ((raw >> 23) & 0x000000FF);
+	uint32_t b = ((raw & 0x00FFFFFF) | 0x00800000);
+
+	e = e - 127 + mul;
+	e = (24 - e - 1);
+	if ((e >= 24) || (e <= -24))
+		return 0;
+
+	if (e >= 0) {
+		if (1 == s)
+			return -1 * (b >> e);
+		else
+			return (b >> e);
+	} else {
+		if (1 == s)
+			return -1 * (b << e);
+		else
+			return (b << e);
+	}
+}
+
 static int sipa_tuning_cmd_set(
 	uint32_t cal_id,
 	uint32_t mode_id,
@@ -350,6 +375,7 @@ int sipa_tuning_cmd_print_monitor_data(
 	int ret = 0;
 	uint8_t buf[MAX_TUNING_MSG_LEN];
 	SIPA_TUNING_PARAM_HEAD *head = (SIPA_TUNING_PARAM_HEAD *)buf;
+	SIA81XX_MONITOR_DATA_MSG *msg = (SIA81XX_MONITOR_DATA_MSG *)(head->msg);
 	uint32_t cmd_len =
 		sizeof(SIPA_TUNING_PARAM_HEAD) + sizeof(SIA81XX_MONITOR_DATA_MSG);
 
@@ -371,6 +397,21 @@ int sipa_tuning_cmd_print_monitor_data(
 			LOG_FLAG, __func__, ret);
 		return -EEXEC;
 	}
+
+	pr_info("[ info][%s] %s: monitor data : "
+		"vdd(%d/1024), temperature(%d/1024), r0(%d/1024), "
+		"a(%d/1048576), f0(%d/1024), q(%d/1024), "
+		"t0(%d/1024), wire_r0(%d/1024), xthresh(%d/1024),  \r\n",
+		LOG_FLAG, __func__,
+		sipa_float_to_int(&msg->vdd, 10),
+		sipa_float_to_int(&msg->spker.temperature, 10),
+		sipa_float_to_int(&msg->spker.r0, 10),
+		sipa_float_to_int(&msg->spker.a, 20),
+		sipa_float_to_int(&msg->spker.f0, 10),
+		sipa_float_to_int(&msg->spker.q, 10),
+		sipa_float_to_int(&msg->spker.t0, 10),
+		sipa_float_to_int(&msg->spker.wire_r0, 10),
+		sipa_float_to_int(&msg->spker.xthresh, 10));
 
 	return 0;
 }

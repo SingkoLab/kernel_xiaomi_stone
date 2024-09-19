@@ -3260,10 +3260,9 @@ static int sipa_power_set(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-static const struct soc_enum msm_snd_enum[] = {
+static const struct soc_enum msm_snd_enum = 
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(sia81xx_power_function),
-				sia81xx_power_function),
-};
+				sia81xx_power_function);
 #endif
 
 static const struct snd_kcontrol_new msm_int_wcd937x_snd_controls[] = {
@@ -3337,7 +3336,7 @@ static const struct snd_kcontrol_new msm_int_snd_controls[] = {
 	SOC_ENUM_EXT("VA_CDC_DMA_TX_2 Format", va_cdc_dma_tx_2_format,
 			cdc_dma_tx_format_get, cdc_dma_tx_format_put),
 #ifdef CONFIG_SND_SOC_SIPA
-	SOC_ENUM_EXT("SpkrLeft Sipa Power", msm_snd_enum[0],
+	SOC_ENUM_EXT("SpkrLeft Sipa Power", msm_snd_enum,
 			sipa_power_get, sipa_power_set),
 #endif
 	SOC_ENUM_EXT("TX_CDC_DMA_TX_0 SampleRate",

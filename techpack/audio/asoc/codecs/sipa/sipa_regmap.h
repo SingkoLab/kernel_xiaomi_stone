@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018, SI-IN, Yun Shi (yun.shi@si-in.com).
+ * Copyright (C) 2018, SI-IN.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
