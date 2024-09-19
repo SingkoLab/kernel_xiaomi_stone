@@ -159,7 +159,7 @@ export KBUILD_BUILD_HOST="SingkoLab"
 export KERNEL_NAME="SingkoKernel"
 export SUBLEVEL="v5.4.$(cat "${MainPath}/Makefile" | grep "SUBLEVEL =" | sed 's/SUBLEVEL = *//g')"
 IMAGE="${MainPath}/out/arch/arm64/boot/Image"
-DTBO_IMAGE="${MainPath}/out/arch/arm64/boot/dtbo.img"
+DTB_IMAGE="${MainPath}/out/arch/arm64/boot/dts/vendor/xiaomi/${DEVICE_CODENAME}.dtb"
 CORES="$(nproc --all)"
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 
@@ -185,14 +185,14 @@ make -j"$CORES" ARCH=$ARCH O=out \
     STRIP=llvm-strip \
     CLANG_TRIPLE=${CrossCompileFlagTriple} \
     CROSS_COMPILE=${CrossCompileFlag64} \
-    CROSS_COMPILE_ARM32=${CrossCompileFlag32}
+    CROSS_COMPILE_ARM32=${CrossCompileFlag32} |& tee out/output.txt
 
    if [[ -f "$IMAGE" ]]; then
       cd ${MainPath}
       git clone --depth=1 ${AnyKernelRepo} -b ${AnyKernelBranch} ${AnyKernelPath}
       cp $IMAGE ${AnyKernelPath}
-      if [[ -f "$DTBO_IMAGE" ]]; then
-        cp $DTBO_IMAGE ${AnyKernelPath}
+      if [[ -f "$DTB_IMAGE" ]]; then
+        cp $DTB_IMAGE ${AnyKernelPath}/dtb
       fi
    else
       echo "❌ Compile Kernel for $DEVICE_CODENAME failed, Check console log to fix it!"
@@ -203,7 +203,8 @@ make -j"$CORES" ARCH=$ARCH O=out \
    fi
 }
 
-KERNEL_ZIP="/DATA/Kernel/${KERNEL_NAME}-${DEVICE_CODENAME}-${BUILD_TIME}.zip"
+KERNEL_ZIP="${KERNEL_NAME}-${DEVICE_CODENAME}-${BUILD_TIME}.zip"
+
 # Zipping function
 function zipping() {
     cd ${AnyKernelPath} || exit 1
@@ -212,13 +213,13 @@ function zipping() {
     else
       sed -i "s/kernel.string=.*/kernel.string=${KERNEL_NAME} ${SUBLEVEL} ${KERNEL_VARIANT} by ${KBUILD_BUILD_USER} for ${DEVICE_MODEL} (${DEVICE_CODENAME})/g" anykernel.sh
     fi
-    zip -r9 ${KERNEL_NAME}-${DEVICE_CODENAME}-${BUILD_TIME}.zip * -x .git README.md *placeholder
+    zip -r9 ${KERNEL_ZIP} * -x .git README.md *placeholder
     cd ..
 
-    if [[ -f "$KERNEL_ZIP" ]]; then
-      rm -rf ${KERNEL_ZIP}
+    if [[ -f "/var/www/html/${KERNEL_ZIP}" ]]; then
+      rm -rf /var/www/html/${KERNEL_ZIP}
     fi
-    mv ${AnyKernelPath}/*.zip ${KERNEL_ZIP}
+    mv ${AnyKernelPath}/${KERNEL_ZIP} /var/www/html/
     cleanup
 }
 
