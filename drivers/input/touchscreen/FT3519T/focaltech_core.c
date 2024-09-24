@@ -59,8 +59,10 @@
 #include "focaltech_core.h"
 #include <linux/string.h>
 /*BSP.TP - 2022.6.24 - Add for palm senser - Start Modify*/
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+#if defined(CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE) &&                         \
+	defined(CONFIG_TOUCHSCREEN_COMMON)
 #include "../xiaomi/xiaomi_touch.h"
+#include <linux/input/tp_common.h>
 #endif
 /*End Modify*/
 
@@ -2627,6 +2629,32 @@ static int fts_reset_mode(int mode)
 	return 0;
 }
 /*GAME MODE END*/
+
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+static ssize_t double_tap_show(struct kobject *kobj,
+			       struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n",
+		       fts_get_mode_value(Touch_Doubletap_Mode, GET_CUR_VALUE));
+}
+
+static ssize_t double_tap_store(struct kobject *kobj,
+				struct kobj_attribute *attr, const char *buf,
+				size_t count)
+{
+	int rc, val;
+	rc = kstrtoint(buf, 10, &val);
+	if (rc)
+		return -EINVAL;
+	fts_set_cur_value(Touch_Doubletap_Mode, !!val);
+	return count;
+}
+
+static struct tp_common_ops double_tap_ops = {
+	.show = double_tap_show,
+	.store = double_tap_store,
+};
+#endif
 #endif
 
 /*****************************************************************************
@@ -2679,6 +2707,11 @@ static int fts_ts_probe(struct i2c_client *client, const struct i2c_device_id *i
 		kfree_safe(ts_data);
 		return ret;
 	}
+
+#if defined(CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE) &&                         \
+	defined(CONFIG_TOUCHSCREEN_COMMON)
+	tp_common_set_double_tap_ops(&double_tap_ops);
+#endif
 
 	FTS_INFO("Touch Screen(I2C BUS) driver prboe successfully");
 	return 0;
