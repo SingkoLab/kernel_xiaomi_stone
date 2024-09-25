@@ -142,7 +142,6 @@ function kernelsu() {
           KERNEL_VARIANT="${KERNEL_VARIANT}-KernelSU"
           if [ ! -f "${MainPath}/KernelSU/README.md" ]; then
              cd ${MainPath}
-             curl -LSs "https://raw.githubusercontent.com/SingkoLab/Kernel-Builder/batu/ksu_setup.sh" | bash -s main
              sed -i "s/CONFIG_KSU=n/CONFIG_KSU=y/g" arch/${ARCH}/configs/${DEVICE_DEFCONFIG}
           fi
     fi
@@ -217,9 +216,9 @@ function zipping() {
     cd ..
 
     if [[ -f "/var/www/html/${KERNEL_ZIP}" ]]; then
-      rm -rf /var/www/html/${KERNEL_ZIP}
+      sudo rm -rf /var/www/html/${KERNEL_ZIP}
     fi
-    mv ${AnyKernelPath}/${KERNEL_ZIP} /var/www/html/
+    sudo mv ${AnyKernelPath}/${KERNEL_ZIP} /var/www/html/
     cleanup
 }
 
