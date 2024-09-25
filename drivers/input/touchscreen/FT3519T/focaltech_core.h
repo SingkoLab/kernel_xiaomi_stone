@@ -309,6 +309,10 @@ enum _FTS_IC_TYPE {
 *****************************************************************************/
 extern struct fts_ts_data *fts_data;
 
+#if defined(CONFIG_DRM_PANEL)
+struct drm_panel *fts_get_panel(void);
+#endif
+
 /* communication interface */
 int fts_read(u8 *cmd, u32 cmdlen, u8 *data, u32 datalen);
 int fts_read_reg(u8 addr, u8 *value);
