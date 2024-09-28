@@ -148,14 +148,14 @@ function kernelsu() {
 }
 
 # Enviromental variable
-DEVICE_MODEL="Redmi Note 12 5G/POCO X5 5G"
+DEVICE_MODEL="Poco X5 5G"
 DEVICE_CODENAME="stone"
 BUILD_TIME="$(TZ="Asia/Jakarta" date "+%m%d%Y")"
 export DEVICE_DEFCONFIG="holi-qgki_defconfig"
 export ARCH="arm64"
-export KBUILD_BUILD_USER="nullptr03"
-export KBUILD_BUILD_HOST="SingkoLab"
-export KERNEL_NAME="SingkoKernel"
+export KBUILD_BUILD_USER="ichirooo"
+export KBUILD_BUILD_HOST="ThinkPad-T480"
+export KERNEL_NAME="Mechatron-X5"
 export SUBLEVEL="v5.4.$(cat "${MainPath}/Makefile" | grep "SUBLEVEL =" | sed 's/SUBLEVEL = *//g')"
 IMAGE="${MainPath}/out/arch/arm64/boot/Image"
 DTB_IMAGE="${MainPath}/out/arch/arm64/boot/dts/vendor/xiaomi/${DEVICE_CODENAME}.dtb"
